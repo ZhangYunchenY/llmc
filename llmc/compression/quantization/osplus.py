@@ -98,7 +98,12 @@ class OsPlus(BaseBlockwiseQuantization):
             input_feats[i] = input_feats[i].to(next(inspect_module.parameters()).device)
             x = input_feats[i]
 
-            if self.model.has_bias() or self.use_shift:
+            enable_bias = True
+            for fc in layers:
+                if fc.bias is None:
+                    enable_bias = False
+
+            if ((self.model.has_bias() or self.use_shift)) and enable_bias:
                 if x.dim() == 3:
                     cmx = torch.amax(x, dim=(0, 1))
                     cmn = torch.amin(x, dim=(0, 1))
@@ -123,7 +128,7 @@ class OsPlus(BaseBlockwiseQuantization):
                     org_out = self.get_original_out(x, inspect_module, kwargs)
                     org_out_dict[i] = org_out
 
-            if self.model.has_bias() or self.use_shift:
+            if (self.model.has_bias() or self.use_shift) and enable_bias:
                 x_shift = x - shift
             else:
                 x_shift = x.clone()
@@ -168,7 +173,7 @@ class OsPlus(BaseBlockwiseQuantization):
                 cur_scale = torch.max(mx_scale, mn_scale)
 
                 for fc in layers:
-                    if self.model.has_bias() or self.use_shift:
+                    if (self.model.has_bias() or self.use_shift) and enable_bias:
                         fc.bias.data += shift @ fc.weight.data.T
 
                     fc.weight.mul_(cur_scale.view(1, -1))

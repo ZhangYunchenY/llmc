@@ -101,11 +101,12 @@ class BaseBlockwiseQuantization(BlockwiseOpt):
             for name in named_linears:
                 device = named_linears[name].weight.device
                 dtype = named_linears[name].weight.dtype
-                named_linears[name].register_parameter(
-                    'bias', nn.Parameter(
-                        torch.zeros(named_linears[name].out_features).to(device=device, dtype=dtype)
+                if "down_proj" not in name:
+                    named_linears[name].register_parameter(
+                        'bias', nn.Parameter(
+                            torch.zeros(named_linears[name].out_features).to(device=device, dtype=dtype)
+                        )
                     )
-                )
             for name in lns:
                 device = lns[name].weight.device
                 dtype = lns[name].weight.dtype
